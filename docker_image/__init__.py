@@ -22,11 +22,15 @@ def _is_in_docker_sched() -> bool:
 
 
 def _is_in_docker_dockerenv() -> bool:
-    return Path(".dockerenv").exists()
+    return Path("/.dockerenv").exists()
 
 
 def _is_in_docker() -> bool:
-    if docker._is_in_docker_orig() or _is_in_docker_dockerenv or _is_in_docker_sched():
+    if (
+        docker._is_in_docker_orig()
+        or _is_in_docker_dockerenv()
+        or _is_in_docker_sched()
+    ):
         return True
 
     return False
@@ -114,9 +118,6 @@ def _get_container_id() -> str:
 
     if container_id == "":
         container_id = _get_container_id_sched()
-
-        if container_id == "":
-            raise RuntimeError("Failed to find the container ID.")
 
     return container_id
 
