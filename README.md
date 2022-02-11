@@ -9,8 +9,9 @@ This repository contains Jiri Tyr's `pre-commit` hooks.
 This hook is an extension of the original `pre-commit` implementation of running
 checks in a [Docker image](https://pre-commit.com/index.html#docker_image). It's
 using the actual `pre-commit` code but it extends it with functionality for a
-better detection of the "Docker in Docker" scenario. The detection comprise of
-these checks:
+better detection of the "Docker in Docker" scenario (e.g. when running in a
+custom Docker image in GitHub Workflows). The detection comprise of these
+checks:
 
 - [Using Control Groups](https://www.baeldung.com/linux/is-process-running-inside-container#using-control-groups)
 - [Existence of `.dockerenv`](https://www.baeldung.com/linux/is-process-running-inside-container#existence-of-dockerenv)
