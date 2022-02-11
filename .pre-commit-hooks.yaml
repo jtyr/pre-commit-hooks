@@ -1,0 +1,5 @@
+- id: docker-image
+  name: docker-image
+  description: Run Docker image with extended DinD detection.
+  entry: docker-image
+  language: python
