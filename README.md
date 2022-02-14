@@ -22,7 +22,7 @@ checks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.0.0
+    rev: v1.1.0
     hooks:
       - id: docker-image
         name: Run /tools/validate.sh in container
