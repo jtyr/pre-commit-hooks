@@ -178,7 +178,7 @@
                 "org.opencontainers.image.created": "2022-02-10T09:31:31.284Z",
                 "org.opencontainers.image.description": "",
                 "org.opencontainers.image.licenses": "",
-                "org.opencontainers.image.revision": "bb5dfa1169b7094b0e00edfea92b5189b39a7909",
+                "org.opencontainers.image.revision": "bb5dfa1169b7094b0e00edfea92b5189b39a7909"
             }
         },
         "NetworkSettings": {
