@@ -3,9 +3,6 @@ repos:
     rev: v4.1.0
     hooks:
       - id: check-yaml
-        args:
-          - --allow-multiple-documents
-        exclude: tools/acm/tests/fixtures/(read_write/test2|generate/test1/values/internal-sut-malformated).yaml
       - id: end-of-file-fixer
       - id: mixed-line-ending
         args:

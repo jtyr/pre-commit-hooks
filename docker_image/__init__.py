@@ -8,9 +8,35 @@ from pre_commit.util import cmd_output_b
 from pre_commit.util import CalledProcessError
 
 
+# To allow to mock the docker functionality
+DOCKER = docker
+
+# To allow to mock the path to the scheduler proc file
+PROC_SHED = "/proc/1/sched"
+
+# To allow to mock the path to the .dockerenv file
+DOCKERENV = "/.dockerenv"
+
+# To allow to mock the command used to list overlay type mounts
+MOUNT_OVERLAY = ("mount", "-t", "overlay")
+
+# To allow to mock the command to list running Docker containers
+DOCKER_PS = ("docker", "ps", "--format", "{{ .ID }}")
+
+# To allow to mock the command to inspect Docker container
+DOCKER_INSPECT = ("dockere", "inspect")
+
+# To allow to mock command line arguments
+SYS_ARGV = sys.argv
+
+
+def _is_in_docker_dockerenv() -> bool:
+    return Path(DOCKERENV).exists()
+
+
 def _is_in_docker_sched() -> bool:
     try:
-        with open("/proc/1/sched", "rb") as f:
+        with open(PROC_SHED, "rb") as f:
             line = f.readline()
 
             if line.startswith(b"systemd ") or line.startswith(b"init "):
@@ -21,13 +47,9 @@ def _is_in_docker_sched() -> bool:
         return False
 
 
-def _is_in_docker_dockerenv() -> bool:
-    return Path("/.dockerenv").exists()
-
-
 def _is_in_docker() -> bool:
     if (
-        docker._is_in_docker_orig()
+        DOCKER._is_in_docker_orig()
         or _is_in_docker_dockerenv()
         or _is_in_docker_sched()
     ):
@@ -38,7 +60,7 @@ def _is_in_docker() -> bool:
 
 def _get_container_id_cgroup() -> str:
     try:
-        return docker._get_container_id_orig()
+        return DOCKER._get_container_id_orig()
     except RuntimeError:
         return ""
 
@@ -49,7 +71,7 @@ def _get_container_id_sched() -> str:
 
     # Get details for the overlay mount type
     try:
-        _, out, _ = cmd_output_b("mount", "-t", "overlay")
+        _, out, _ = cmd_output_b(*MOUNT_OVERLAY)
     except CalledProcessError:
         # No mount command available or the -t option is not supported
         return ""
@@ -79,7 +101,7 @@ def _get_container_id_sched() -> str:
 
     # Get list IDs for all running containers
     try:
-        _, out, _ = cmd_output_b("docker", "ps", "--format", "{{ .ID }}")
+        _, out, _ = cmd_output_b(*DOCKER_PS)
     except CalledProcessError:
         # There is probably no docker command
         return ""
@@ -93,7 +115,8 @@ def _get_container_id_sched() -> str:
     # Search for a container that has the workdir we got from the mount command
     for container_id in container_ids:
         try:
-            _, out, _ = cmd_output_b("docker", "inspect", container_id)
+            DOCKER_INSPECT_TMP = DOCKER_INSPECT + (container_id,)
+            _, out, _ = cmd_output_b(*DOCKER_INSPECT_TMP)
         except CalledProcessError:
             # Container probably doesn't exist anymore
             return ""
@@ -124,13 +147,13 @@ def _get_container_id() -> str:
 
 def main() -> None:
     # Override methods with local replacement
-    docker._is_in_docker_orig = docker._is_in_docker
-    docker._is_in_docker = _is_in_docker
-    docker._get_container_id_orig = docker._get_container_id
-    docker._get_container_id = _get_container_id
+    DOCKER._is_in_docker_orig = DOCKER._is_in_docker
+    DOCKER._is_in_docker = _is_in_docker
+    DOCKER._get_container_id_orig = DOCKER._get_container_id
+    DOCKER._get_container_id = _get_container_id
 
     # Get docker command enriched by the hook args
-    cmd = docker.docker_cmd() + tuple(sys.argv[1:])
+    cmd = DOCKER.docker_cmd() + tuple(SYS_ARGV[1:])
 
     # Run the command
     try:
@@ -138,7 +161,7 @@ def main() -> None:
     except CalledProcessError as e:
         returncode, stdout, stderr = e.returncode, e.stdout, e.stderr
 
-    # Print stderr if any
+    # Print stdout if any
     if stdout:
         print(stdout.decode().rstrip())
 
