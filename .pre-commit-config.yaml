@@ -30,3 +30,15 @@ repos:
         args:
           - --max-line-length=88
           - --ignore=E501,W503
+
+  - repo: local
+    hooks:
+      - id: python_unittest
+        name: Python unittest
+        language: python
+        entry: python -m unittest tests.docker_image
+        types:
+          - python
+        additional_dependencies:
+          - pre-commit
+        pass_filenames: false
