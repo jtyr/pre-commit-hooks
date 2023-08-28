@@ -22,7 +22,7 @@ checks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.1.1
+    rev: v1.2.0
     hooks:
       - id: docker-image
         name: Run /tools/validate.sh in container
@@ -31,6 +31,23 @@ repos:
           - -c
           - /tools/validate.sh
         pass_filenames: false
+```
+
+### `check-helm-version`
+
+This hook checks if the Helm chart version was incremented or not. This helps to
+prevent the Helm chart push to fail if there already exists a Helm chart with the
+same version in the registry. If the registry allows to overwrite an existing
+Helm chart version, this hook helps to prevent the overwrite.
+
+#### Usage
+
+```yaml
+repos:
+  - repo: https://github.com/jtyr/pre-commit-hooks
+    rev: v1.2.0
+    hooks:
+      - id: check-helm-version
 ```
 
 ## Author

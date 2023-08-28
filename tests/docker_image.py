@@ -70,10 +70,10 @@ class TestDockerImage(MyTestCase):
         }
 
         # Force module reload
-        if "docker_image" in sys.modules:
-            del sys.modules["docker_image"]
+        if "hooks.docker_image" in sys.modules:
+            del sys.modules["hooks.docker_image"]
 
-        import docker_image as di
+        import hooks.docker_image as di
 
         # Run individual test
         def _run_test(test):
@@ -112,10 +112,10 @@ class TestDockerImage(MyTestCase):
         }
 
         # Force module reload
-        if "docker_image" in sys.modules:
-            del sys.modules["docker_image"]
+        if "hooks.docker_image" in sys.modules:
+            del sys.modules["hooks.docker_image"]
 
-        import docker_image as di
+        import hooks.docker_image as di
 
         # Run individual test
         def _run_test(test):
@@ -188,10 +188,10 @@ class TestDockerImage(MyTestCase):
         }
 
         # Force module reload
-        if "docker_image" in sys.modules:
-            del sys.modules["docker_image"]
+        if "hooks.docker_image" in sys.modules:
+            del sys.modules["hooks.docker_image"]
 
-        import docker_image as di
+        import hooks.docker_image as di
 
         # Fake the di.DOCKER._is_in_docker_orig to be able to mock open()
         def _is_in_docker_orig_test():
@@ -255,10 +255,10 @@ class TestDockerImage(MyTestCase):
         }
 
         # Force module reload
-        if "docker_image" in sys.modules:
-            del sys.modules["docker_image"]
+        if "hooks.docker_image" in sys.modules:
+            del sys.modules["hooks.docker_image"]
 
-        import docker_image as di
+        import hooks.docker_image as di
 
         # Fake the di._get_container_id_cgroup_orig to be able to mock open()
         def _get_container_id_cgroup_test():
@@ -353,10 +353,10 @@ class TestDockerImage(MyTestCase):
         }
 
         # Force module reload
-        if "docker_image" in sys.modules:
-            del sys.modules["docker_image"]
+        if "hooks.docker_image" in sys.modules:
+            del sys.modules["hooks.docker_image"]
 
-        import docker_image as di
+        import hooks.docker_image as di
 
         # Run individual test
         def _run_test(test):
@@ -416,10 +416,10 @@ class TestDockerImage(MyTestCase):
         }
 
         # Force module reload
-        if "docker_image" in sys.modules:
-            del sys.modules["docker_image"]
+        if "hooks.docker_image" in sys.modules:
+            del sys.modules["hooks.docker_image"]
 
-        import docker_image as di
+        import hooks.docker_image as di
 
         def _get_container_id_cgroup_test():
             return self.___cgroup_id
@@ -468,10 +468,10 @@ class TestDockerImage(MyTestCase):
         }
 
         # Force module reload
-        if "docker_image" in sys.modules:
-            del sys.modules["docker_image"]
+        if "hooks.docker_image" in sys.modules:
+            del sys.modules["hooks.docker_image"]
 
-        import docker_image as di
+        import hooks.docker_image as di
 
         def docker_cmd_test():
             return self.___cmd
