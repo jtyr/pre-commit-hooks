@@ -1,5 +1,11 @@
 - id: docker-image
-  name: docker-image
+  name: Docker image
   description: Run Docker image with extended DinD detection.
   entry: docker-image
+  language: python
+
+- id: helm-version-increment
+  name: Helm version increment
+  description: Determine whether the Helm chart version was bumped.
+  entry: helm-version-increment
   language: python
