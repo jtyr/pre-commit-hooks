@@ -78,19 +78,19 @@ def find_chart_dir(path):
 
 
 def process_paths(paths):
-    charts = []
+    charts = ()
 
     for p in map(os.path.abspath, paths):
         if os.path.isdir(p) and os.path.isfile(os.path.join(p, "Chart.yaml")):
             # It's a directory and contains Chart.yaml
             if p not in charts:
-                charts.append(os.path.join(p, "Chart.yaml"))
+                charts.add(os.path.join(p, "Chart.yaml"))
         else:
             d = find_chart_dir(p)
 
             # Add the path if it found Chart.yaml in the tree
             if d is not None and d not in charts:
-                charts.append(os.path.join(d, "Chart.yaml"))
+                charts.add(os.path.join(d, "Chart.yaml"))
 
     return charts
 

@@ -9,3 +9,5 @@
   description: Check whether the Helm chart version was incremented.
   entry: check-helm-version
   language: python
+  files: ^(helper-|)charts/[^/]+/(\.kubeconform|\.helmignore|templates/NOTES.txt|.*\.(ya?ml|json|tpl))$
+  require_serial: true
