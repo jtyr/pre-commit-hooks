@@ -78,7 +78,7 @@ def find_chart_dir(path):
 
 
 def process_paths(paths):
-    charts = ()
+    charts = set()
 
     for p in map(os.path.abspath, paths):
         if os.path.isdir(p) and os.path.isfile(os.path.join(p, "Chart.yaml")):
