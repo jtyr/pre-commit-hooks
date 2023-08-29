@@ -11,7 +11,7 @@ from packaging import version
 def parse_args():
     # Define parser
     parser = argparse.ArgumentParser(
-        description="Check if Helm chart version was incremented."
+        description="Check whether the Helm chart version was incremented."
     )
 
     # Add script options

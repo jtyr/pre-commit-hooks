@@ -4,8 +4,8 @@
   entry: docker-image
   language: python
 
-- id: helm-version-increment
-  name: Helm version increment
-  description: Determine whether the Helm chart version was bumped.
-  entry: helm-version-increment
+- id: check-helm-version
+  name: Helm version
+  description: Check whether the Helm chart version was incremented.
+  entry: check-helm-version
   language: python
