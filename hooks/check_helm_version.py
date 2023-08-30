@@ -171,14 +171,15 @@ def check_chart(repo, current_branch, main_branch, path, log):
 
     if main_version >= current_version:
         log.warning(
-            "Version wasn't bumped (%s >= %s)"
-            % (main_yaml["version"], current_yaml["version"])
+            "Version wasn't incremented (%s <= %s)"
+            % (current_yaml["version"], main_yaml["version"])
         )
 
         sys.exit(127)
     else:
         log.info(
-            "Version bumped (%s < %s)" % (main_yaml["version"], current_yaml["version"])
+            "Version was incremented (%s > %s)"
+            % (current_yaml["version"], main_yaml["version"])
         )
 
 
@@ -195,8 +196,8 @@ def main():
     # Create Git repo object and start querying all the details
     repo = Repo(args.PATH[0], search_parent_directories=True)
 
-    # Current branch name
-    current_branch = repo.active_branch
+    # Current branch head
+    current_branch = repo.head
 
     # Main branch name
     main_branch_name = args.branch
@@ -211,7 +212,7 @@ def main():
 
     # Check that we found the main branch
     if main_branch is None:
-        log.error("Main branch not found")
+        log.error("Main branch '%s' not found" % args.branch)
 
         sys.exit(1)
 
