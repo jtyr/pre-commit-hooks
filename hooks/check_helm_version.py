@@ -230,7 +230,9 @@ def main():
             for ref in remote.refs:
                 if ref.name == "%s/%s" % (args.remote, args.branch):
                     try:
-                        repo.create_head(ref.remote_head, ref)
+                        main_branch = repo.create_head(ref.remote_head, ref)
+
+                        break
                     except Exception as e:
                         log.error(
                             "Main branch '%s' not found. Failed to create head "
@@ -238,13 +240,13 @@ def main():
                         )
 
                         sys.exit(1)
-                else:
-                    log.error(
-                        "Main branch '%s' not found. Failed to find it "
-                        "on the remote '%s'." % (args.branch, args.remote)
-                    )
+            else:
+                log.error(
+                    "Main branch '%s' not found. Failed to find it "
+                    "on the remote '%s'." % (args.branch, args.remote)
+                )
 
-                    sys.exit(1)
+                sys.exit(1)
         else:
             log.error(
                 "Main branch '%s' not found. Couldn't find the remote '%s'."
