@@ -23,6 +23,13 @@ def parse_args():
         default="main",
     )
     parser.add_argument(
+        "-r",
+        "--remote",
+        metavar="NAME",
+        help="remote name where the main branch exists (default: origin)",
+        default="origin",
+    )
+    parser.add_argument(
         "-d",
         "--debug",
         help="debug output",
@@ -212,9 +219,39 @@ def main():
 
     # Check that we found the main branch
     if main_branch is None:
-        log.error("Main branch '%s' not found" % args.branch)
+        # If the branch wasn't found, try to find it on the remote
+        remote = None
 
-        sys.exit(1)
+        for r in repo.remotes:
+            if r.name == args.remote:
+                remote = r
+
+        if remote is not None:
+            for ref in remote.refs:
+                if ref.name == "%s/%s" % (args.remote, args.branch):
+                    try:
+                        repo.create_head(ref.remote_head, ref)
+                    except Exception as e:
+                        log.error(
+                            "Main branch '%s' not found. Failed to create head "
+                            "from remote '%s': %s" % (args.branch, args.remote, e)
+                        )
+
+                        sys.exit(1)
+                else:
+                    log.error(
+                        "Main branch '%s' not found. Failed to find it "
+                        "on the remote '%s'." % (args.branch, args.remote)
+                    )
+
+                    sys.exit(1)
+        else:
+            log.error(
+                "Main branch '%s' not found. Couldn't find the remote '%s'."
+                % (args.branch, args.remote)
+            )
+
+            sys.exit(1)
 
     # Process individual charts
     for chart in charts:
