@@ -129,8 +129,18 @@ def get_file_content(repo, branch, path):
     return content
 
 
+def get_local_file_content(path, log):
+    try:
+        with open(path) as f:
+            return f.read()
+    except Exception as e:
+        log.error("Failed to read file '%s' from the current branch: %s" % (path, e))
+
+        sys.exit(1)
+
+
 def check_chart(repo, current_branch, main_branch, path, log):
-    current_content = get_file_content(repo, current_branch, path)
+    current_content = get_local_file_content(path, log)
     main_content = get_file_content(repo, main_branch, path)
 
     if main_content is None:
