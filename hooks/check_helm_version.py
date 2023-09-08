@@ -1,11 +1,11 @@
 import argparse
 import logging
 import os
+import semver
 import sys
 import yaml
 
 from git import Repo
-from packaging import version
 
 
 def parse_args():
@@ -153,51 +153,47 @@ def check_chart(repo, current_branch, main_branch, path, log):
     except Exception as e:
         log.error("Failed to parse YAML file from the main branch: %s" % e)
 
-        sys.exit(1)
+        return 1
 
     try:
         current_yaml = yaml.safe_load(current_content)
     except Exception as e:
         log.error("Failed to parse YAML file from the current branch: %s" % e)
 
-        sys.exit(1)
+        return 1
 
     if "version" not in main_yaml:
         log.error("File in the main branch has no version")
 
-        sys.exit(1)
+        return 1
 
     if "version" not in current_yaml:
         log.error("File in the current branch has no version")
 
-        sys.exit(1)
+        return 1
 
     try:
-        main_version = version.parse(main_yaml["version"])
+        comparison_result = semver.compare(
+            main_yaml["version"], current_yaml["version"]
+        )
     except Exception as e:
-        log.error("Failed to parse version from main branch: %s" % e)
+        log.error("Failed to compare versions: %s" % e)
 
-        sys.exit(1)
+        return 1
 
-    try:
-        current_version = version.parse(current_yaml["version"])
-    except Exception as e:
-        log.error("Failed to parse version from current branch: %s" % e)
-
-        sys.exit(1)
-
-    if main_version >= current_version:
+    # Check if the main version is smaller than the current version
+    if comparison_result == -1:
+        log.info(
+            "Version was incremented (%s > %s)"
+            % (current_yaml["version"], main_yaml["version"])
+        )
+    else:
         log.warning(
             "Version wasn't incremented (%s <= %s)"
             % (current_yaml["version"], main_yaml["version"])
         )
 
-        sys.exit(127)
-    else:
-        log.info(
-            "Version was incremented (%s > %s)"
-            % (current_yaml["version"], main_yaml["version"])
-        )
+        return 127
 
 
 def main():
@@ -265,13 +261,20 @@ def main():
 
             sys.exit(1)
 
+    final_status = 0
+
     # Process individual charts
     for chart in charts:
         path = os.path.relpath(chart, start=repo.working_tree_dir)
 
         log.info("Processing chart: %s" % os.path.dirname(path))
 
-        check_chart(repo, current_branch, main_branch, path, log)
+        status = check_chart(repo, current_branch, main_branch, path, log)
+
+        if final_status == 0 and status is not None:
+            final_status = status
+
+    sys.exit(final_status)
 
 
 if __name__ == "__main__":
