@@ -22,7 +22,7 @@ checks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.2.9
+    rev: v1.3.0
     hooks:
       - id: docker-image
         name: Run /tools/validate.sh in container
@@ -45,7 +45,7 @@ Helm chart version, this hook helps to prevent the overwrite.
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.2.9
+    rev: v1.3.0
     hooks:
       - id: check-helm-version
 ```
@@ -57,7 +57,7 @@ the `--branch` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.2.9
+    rev: v1.3.0
     hooks:
       - id: check-helm-version
         args:
@@ -71,12 +71,40 @@ argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.2.9
+    rev: v1.3.0
     hooks:
       - id: check-helm-version
         args:
           - --remote=upstream
           - --branch=default
+```
+
+It's also possible to autofix the version incrementation by specifying
+the `--autofix` argument:
+
+```yaml
+repos:
+  - repo: https://github.com/jtyr/pre-commit-hooks
+    rev: v1.3.0
+    hooks:
+      - id: check-helm-version
+        args:
+          - --autofix
+```
+
+By default, the `patch` portion of the version is incremented. Different
+portion (`major`, `minor`, `prerelease` and `build`) can be specified
+with the `--autofix-portion` argument:
+
+```yaml
+repos:
+  - repo: https://github.com/jtyr/pre-commit-hooks
+    rev: v1.3.0
+    hooks:
+      - id: check-helm-version
+        args:
+          - --autofix
+          - --autofix-portion=minor
 ```
 
 ## Author

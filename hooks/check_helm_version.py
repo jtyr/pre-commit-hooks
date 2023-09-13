@@ -3,9 +3,13 @@ import logging
 import os
 import semver
 import sys
-import yaml
+from ruamel.yaml import YAML
 
 from git import Repo
+
+
+# Global variables
+yaml = YAML()
 
 
 def parse_args():
@@ -28,6 +32,26 @@ def parse_args():
         metavar="NAME",
         help="remote name where the main branch exists (default: origin)",
         default="origin",
+    )
+    parser.add_argument(
+        "-a",
+        "--autofix",
+        help="Whether to automatically increment the version",
+        action="store_true",
+    )
+    parser.add_argument(
+        "-p",
+        "--autofix-portion",
+        metavar="NAME",
+        help="Specifies which semver portion should be autofixed (default: patch)",
+        choices=[
+            "major",
+            "minor",
+            "patch",
+            "prerelease",
+            "build",
+        ],
+        default="patch",
     )
     parser.add_argument(
         "-d",
@@ -139,7 +163,9 @@ def get_local_file_content(path, log):
         sys.exit(1)
 
 
-def check_chart(repo, current_branch, main_branch, path, log):
+def check_chart(
+    yaml, repo, current_branch, main_branch, path, autofix, autofix_portion, log
+):
     current_content = get_local_file_content(path, log)
     main_content = get_file_content(repo, main_branch, path)
 
@@ -149,14 +175,14 @@ def check_chart(repo, current_branch, main_branch, path, log):
         return
 
     try:
-        main_yaml = yaml.safe_load(main_content)
+        main_yaml = yaml.load(main_content)
     except Exception as e:
         log.error("Failed to parse YAML file from the main branch: %s" % e)
 
         return 1
 
     try:
-        current_yaml = yaml.safe_load(current_content)
+        current_yaml = yaml.load(current_content)
     except Exception as e:
         log.error("Failed to parse YAML file from the current branch: %s" % e)
 
@@ -193,6 +219,30 @@ def check_chart(repo, current_branch, main_branch, path, log):
             % (current_yaml["version"], main_yaml["version"])
         )
 
+        if autofix:
+            log.info("Autofixing the %s portion of the version" % autofix_portion)
+
+            if autofix_portion == "major":
+                current_yaml["version"] = semver.bump_major(current_yaml["version"])
+            elif autofix_portion == "minor":
+                current_yaml["version"] = semver.bump_minor(current_yaml["version"])
+            elif autofix_portion == "patch":
+                current_yaml["version"] = semver.bump_patch(current_yaml["version"])
+            elif autofix_portion == "prerelease":
+                current_yaml["version"] = semver.bump_prerelease(
+                    current_yaml["version"]
+                )
+            elif autofix_portion == "build":
+                current_yaml["version"] = semver.bump_build(current_yaml["version"])
+
+            log.info("Autofixed version: %s" % current_yaml["version"])
+
+            try:
+                with open(path, "w") as f:
+                    yaml.dump(current_yaml, f)
+            except Exception as e:
+                log.error("Failed to write YAML file: %s" % e)
+
         return 127
 
 
@@ -205,6 +255,9 @@ def main():
 
     # Get list of charts
     charts = process_paths(args.PATH)
+
+    # YAML reader/writer
+    yaml = YAML()
 
     # Create Git repo object and start querying all the details
     repo = Repo(args.PATH[0], search_parent_directories=True)
@@ -262,17 +315,30 @@ def main():
             sys.exit(1)
 
     final_status = 0
+    charts_cnt = len(charts)
 
     # Process individual charts
-    for chart in charts:
+    for i, chart in enumerate(charts):
         path = os.path.relpath(chart, start=repo.working_tree_dir)
 
         log.info("Processing chart: %s" % os.path.dirname(path))
 
-        status = check_chart(repo, current_branch, main_branch, path, log)
+        status = check_chart(
+            yaml,
+            repo,
+            current_branch,
+            main_branch,
+            path,
+            args.autofix,
+            args.autofix_portion,
+            log,
+        )
 
         if final_status == 0 and status is not None:
             final_status = status
+
+        if i + 1 < charts_cnt:
+            log.info("~~~")
 
     sys.exit(final_status)
 
