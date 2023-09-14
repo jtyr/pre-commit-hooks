@@ -258,6 +258,8 @@ def main():
 
     # YAML reader/writer
     yaml = YAML()
+    yaml.preserve_quotes = True
+    yaml.indent(mapping=2, sequence=4, offset=2)
 
     # Create Git repo object and start querying all the details
     repo = Repo(args.PATH[0], search_parent_directories=True)

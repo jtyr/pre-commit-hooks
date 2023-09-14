@@ -22,7 +22,7 @@ checks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.0
+    rev: v1.3.1
     hooks:
       - id: docker-image
         name: Run /tools/validate.sh in container
@@ -45,7 +45,7 @@ Helm chart version, this hook helps to prevent the overwrite.
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.0
+    rev: v1.3.1
     hooks:
       - id: check-helm-version
 ```
@@ -57,7 +57,7 @@ the `--branch` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.0
+    rev: v1.3.1
     hooks:
       - id: check-helm-version
         args:
@@ -71,7 +71,7 @@ argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.0
+    rev: v1.3.1
     hooks:
       - id: check-helm-version
         args:
@@ -85,7 +85,7 @@ the `--autofix` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.0
+    rev: v1.3.1
     hooks:
       - id: check-helm-version
         args:
@@ -99,7 +99,7 @@ with the `--autofix-portion` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.0
+    rev: v1.3.1
     hooks:
       - id: check-helm-version
         args:
