@@ -223,17 +223,15 @@ def check_chart(
             log.info("Autofixing the %s portion of the version" % autofix_portion)
 
             if autofix_portion == "major":
-                current_yaml["version"] = semver.bump_major(current_yaml["version"])
+                current_yaml["version"] = semver.bump_major(main_yaml["version"])
             elif autofix_portion == "minor":
-                current_yaml["version"] = semver.bump_minor(current_yaml["version"])
+                current_yaml["version"] = semver.bump_minor(main_yaml["version"])
             elif autofix_portion == "patch":
-                current_yaml["version"] = semver.bump_patch(current_yaml["version"])
+                current_yaml["version"] = semver.bump_patch(main_yaml["version"])
             elif autofix_portion == "prerelease":
-                current_yaml["version"] = semver.bump_prerelease(
-                    current_yaml["version"]
-                )
+                current_yaml["version"] = semver.bump_prerelease(main_yaml["version"])
             elif autofix_portion == "build":
-                current_yaml["version"] = semver.bump_build(current_yaml["version"])
+                current_yaml["version"] = semver.bump_build(main_yaml["version"])
 
             log.info("Autofixed version: %s" % current_yaml["version"])
 
