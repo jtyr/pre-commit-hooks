@@ -153,7 +153,7 @@ def main() -> None:
     DOCKER._get_container_id = _get_container_id
 
     # Get docker command enriched by the hook args
-    cmd = DOCKER.docker_cmd() + tuple(SYS_ARGV[1:])
+    cmd = DOCKER.docker_cmd(color=False) + tuple(SYS_ARGV[1:])
 
     # Run the command
     try:

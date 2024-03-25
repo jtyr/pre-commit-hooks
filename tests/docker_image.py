@@ -473,7 +473,7 @@ class TestDockerImage(MyTestCase):
 
         import hooks.docker_image as di
 
-        def docker_cmd_test():
+        def docker_cmd_test(color=False):
             return self.___cmd
 
         # Mock function
