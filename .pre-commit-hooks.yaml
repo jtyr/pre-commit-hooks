@@ -11,3 +11,11 @@
   language: python
   files: ^(helper-|)charts/[^/]+/(\.kubeconform|\.helmignore|templates/NOTES.txt|.*\.(ya?ml|json|tpl))$
   require_serial: true
+
+- id: check-version
+  name: Version
+  description: Check whether the version file was incremented.
+  entry: check-version
+  language: python
+  files: ^.*/\.version$
+  require_serial: true
