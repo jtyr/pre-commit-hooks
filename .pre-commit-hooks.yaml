@@ -17,5 +17,5 @@
   description: Check whether the version file was incremented.
   entry: check-version
   language: python
-  files: ^.*/\.version$
+  files: ^.*$
   require_serial: true
