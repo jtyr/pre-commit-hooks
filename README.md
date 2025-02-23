@@ -22,7 +22,7 @@ checks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.5
+    rev: v1.3.6
     hooks:
       - id: docker-image
         name: Run /tools/validate.sh in container
@@ -45,7 +45,7 @@ Helm chart version, this hook helps to prevent the overwrite.
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.5
+    rev: v1.3.6
     hooks:
       - id: check-helm-version
 ```
@@ -57,7 +57,7 @@ the `--branch` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.5
+    rev: v1.3.6
     hooks:
       - id: check-helm-version
         args:
@@ -71,7 +71,7 @@ argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.5
+    rev: v1.3.6
     hooks:
       - id: check-helm-version
         args:
@@ -85,7 +85,7 @@ the `--autofix` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.5
+    rev: v1.3.6
     hooks:
       - id: check-helm-version
         args:
@@ -99,7 +99,7 @@ with the `--autofix-portion` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.5
+    rev: v1.3.6
     hooks:
       - id: check-helm-version
         args:
@@ -118,23 +118,24 @@ difference that it changes version in a plain text file ((e.g.
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.5
+    rev: v1.3.6
     hooks:
       - id: check-version
 ```
 
 Use different version file (e.g. `VERSION` instead of the default
-`.version`):
+`.version`) and check version when any file changes but the `.gitignore`
+and `README.md` file:
 
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.3.5
+    rev: v1.3.6
     hooks:
       - id: check-version
         args:
           - --version-file=VERSION
-        files: ^.*/VERSION$
+        files: ^(?!(.gitignore|README.md)).*$
 ```
 
 Please refer to the `check-helm-version` above for more details about
