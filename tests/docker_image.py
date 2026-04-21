@@ -1,12 +1,9 @@
-import builtins
 import io
 import os
 import sys
 import unittest
 
 from contextlib import redirect_stdout, redirect_stderr
-from pre_commit.languages import docker
-from unittest import mock
 
 
 class Common:
@@ -14,17 +11,6 @@ class Common:
         # Path to the fixtures directory
         self.fixtures_path = os.path.normpath(
             os.path.join(os.path.dirname(__file__), "fixtures")
-        )
-
-    def mock_open(self, filename):
-        with open(filename, "rb") as f:
-            data = f.read()
-
-        return mock.patch.object(
-            builtins,
-            "open",
-            new_callable=mock.mock_open,
-            read_data=data,
         )
 
     def docker_image_path(self, subdir):
@@ -193,17 +179,9 @@ class TestDockerImage(MyTestCase):
 
         import hooks.docker_image as di
 
-        # Fake the di.DOCKER._is_in_docker_orig to be able to mock open()
-        def _is_in_docker_orig_test():
-            with self.common.mock_open(self.___file_param):
-                return docker._is_in_docker()
-
-        # Override the function with the one above
-        di.DOCKER._is_in_docker_orig = _is_in_docker_orig_test
-
         # Run individual test
         def _run_test(test):
-            self.___file_param = os.path.join(
+            di.PROC_CGROUP = os.path.join(
                 self.common.docker_image_path(test["dir_cgroup"]),
                 test["file_cgroup"],
             )
@@ -260,19 +238,9 @@ class TestDockerImage(MyTestCase):
 
         import hooks.docker_image as di
 
-        # Fake the di._get_container_id_cgroup_orig to be able to mock open()
-        def _get_container_id_cgroup_test():
-            with self.common.mock_open(self.___file_param):
-                return di._get_container_id_cgroup_orig()
-
-        # Override some of the functions
-        di.DOCKER._get_container_id_orig = docker._get_container_id
-        di._get_container_id_cgroup_orig = di._get_container_id_cgroup
-        di._get_container_id_cgroup = _get_container_id_cgroup_test
-
         # Run individual test
         def _run_test(test):
-            self.___file_param = os.path.join(
+            di.PROC_CGROUP = os.path.join(
                 self.common.docker_image_path(test["dir"]), test["file"]
             )
 
@@ -411,7 +379,7 @@ class TestDockerImage(MyTestCase):
             "non set": {
                 "cgroup_id": "",
                 "sched_id": "",
-                "expected": "",
+                "expected": None,
             },
         }
 
@@ -430,6 +398,11 @@ class TestDockerImage(MyTestCase):
         # Mock functions
         di._get_container_id_cgroup = _get_container_id_cgroup_test
         di._get_container_id_sched = _get_container_id_sched_test
+        # Pretend upstream's mountinfo-based lookup never finds an ID, so the
+        # fallback path (cgroup / sched) is exercised by the test.
+        di._get_container_id_mountinfo = lambda: None
+        # Bypass `_is_in_docker` by pretending we are always inside a container.
+        di._is_in_docker = lambda: True
 
         # Run individual test
         def _run_test(test):
@@ -477,7 +450,7 @@ class TestDockerImage(MyTestCase):
             return self.___cmd
 
         # Mock function
-        di.DOCKER.docker_cmd = docker_cmd_test
+        di.docker_cmd = docker_cmd_test
 
         # Run individual test
         def _run_test(test):

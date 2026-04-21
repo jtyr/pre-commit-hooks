@@ -7,7 +7,6 @@ from ruamel.yaml import YAML
 
 from git import Repo
 
-
 # Global variables
 yaml = YAML()
 

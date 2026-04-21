@@ -12,6 +12,14 @@
   files: ^(helper-|)charts/[^/]+/(\.kubeconform|\.helmignore|templates/NOTES.txt|.*\.(ya?ml|json|tpl))$
   require_serial: true
 
+- id: helm-unittest
+  name: Helm unit tests
+  description: Run Helm chart unit tests using helm unittest plugin.
+  entry: helm-unittest
+  language: python
+  files: ^(helper-|)charts/[^/]+/(Chart\.ya?ml|values.*\.ya?ml|templates/.*\.(ya?ml|tpl)|tests/.*\.ya?ml)$
+  require_serial: true
+
 - id: check-version
   name: Version
   description: Check whether the version file was incremented.
