@@ -27,3 +27,11 @@
   language: python
   files: ^.*$
   require_serial: true
+
+- id: bats
+  name: Bats
+  description: Run bats tests for each changed shell script's companion bats file.
+  entry: bats
+  language: python
+  types:
+    - shell

@@ -22,7 +22,7 @@ checks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: docker-image
         name: Run /tools/validate.sh in container
@@ -48,13 +48,14 @@ Supported `pre-commit` hooks:
 - [`check-helm-version`](#check-helm-version)
 - [`helm-unittest`](#helm-unittest)
 - [`check-version`](#check-version)
+- [`bats`](#bats)
 
 ---
 
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: check-helm-version
 ```
@@ -66,7 +67,7 @@ argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: check-helm-version
         args:
@@ -79,7 +80,7 @@ head from the remote. The remote name can be set via `--remote` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: check-helm-version
         args:
@@ -93,7 +94,7 @@ It's also possible to autofix the version incrementation by specifying the
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: check-helm-version
         args:
@@ -107,7 +108,7 @@ with the `--autofix-portion` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: check-helm-version
         args:
@@ -138,7 +139,7 @@ Basic usage with default settings (charts in `charts/` directory, tests in
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: helm-unittest
 ```
@@ -148,7 +149,7 @@ Specify a custom charts directory:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: helm-unittest
         args:
@@ -160,7 +161,7 @@ Use custom test directory and file pattern:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: helm-unittest
         args:
@@ -173,7 +174,7 @@ Stop on first test failure:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: helm-unittest
         args:
@@ -185,7 +186,7 @@ Enable debug output:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: helm-unittest
         args:
@@ -197,7 +198,7 @@ Test library charts using helper charts:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: helm-unittest
         args:
@@ -229,7 +230,7 @@ use `helper-charts/libchart/` for testing and will look for test files in
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: helm-unittest
         args:
@@ -313,7 +314,7 @@ that it changes version in a plain text file (e.g. `.version`).
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: check-version
 ```
@@ -325,7 +326,7 @@ file:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.4.0
+    rev: v1.5.0
     hooks:
       - id: check-version
         args:
@@ -334,6 +335,71 @@ repos:
 ```
 
 Please refer to the `check-helm-version` above for more details about the usage.
+
+### `bats`
+
+This hook runs [bats](https://github.com/bats-core/bats-core) tests for each
+changed shell script. For every `.sh` file passed by `pre-commit`, the hook
+looks for a companion bats file at a template-resolved location and runs bats
+on it. Shell scripts without a companion bats file are silently skipped.
+
+`bats-core` must be installed on the machine running the hook (the hook does
+not install it).
+
+#### Usage
+
+Side-by-side layout (`foo.sh` + `foo.bats` in the same directory), which is the
+default:
+
+```yaml
+repos:
+  - repo: https://github.com/jtyr/pre-commit-hooks
+    rev: v1.5.0
+    hooks:
+      - id: bats
+```
+
+Sibling `tests/` directory (`scripts/foo.sh` + `tests/foo.bats` relative to the
+script):
+
+```yaml
+repos:
+  - repo: https://github.com/jtyr/pre-commit-hooks
+    rev: v1.5.0
+    hooks:
+      - id: bats
+        args:
+          - --pattern=../tests/{name}.bats
+```
+
+Centralised tests directory at the repo root (`{root}` expands to the cwd when
+`pre-commit` runs the hook, which is the root of the repo containing
+`.pre-commit-config.yaml`):
+
+```yaml
+repos:
+  - repo: https://github.com/jtyr/pre-commit-hooks
+    rev: v1.5.0
+    hooks:
+      - id: bats
+        args:
+          - --pattern={root}/tests/{name}.bats
+```
+
+#### Pattern placeholders
+
+- `{name}` - the basename of the shell script without the `.sh` extension.
+- `{root}` - the absolute path of the directory where `pre-commit` runs the
+  hook (equivalent to the directory containing `.pre-commit-config.yaml`).
+
+When the expanded path is not absolute it is interpreted relative to the
+directory of the shell script.
+
+#### Arguments
+
+- `-p`, `--pattern PATTERN` - template for the companion bats file location
+  (default: `{name}.bats`).
+- `-d`, `--debug` - enable debug output.
 
 ## Author
 
