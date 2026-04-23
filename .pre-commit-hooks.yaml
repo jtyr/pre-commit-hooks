@@ -31,7 +31,7 @@
 - id: bats
   name: Bats
   description: Run bats tests for each changed shell script's companion bats file.
-  entry: bats
+  entry: bats-run
   language: python
   types:
     - shell
