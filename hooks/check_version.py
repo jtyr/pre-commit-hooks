@@ -6,6 +6,18 @@ import sys
 
 from git import Repo
 
+from hooks.common.conventional import bump_from_messages
+from hooks.common.get_file_content import (
+    get_file_content,
+    get_local_file_content,
+)
+from hooks.common.git_helpers import (
+    changed_paths_since_main,
+    find_main_branch,
+    is_commit_msg_invocation,
+    iter_commit_messages,
+)
+
 
 def parse_args():
     # Define parser
@@ -42,10 +54,22 @@ def parse_args():
         action="store_true",
     )
     parser.add_argument(
+        "-s",
+        "--autofix-strategy",
+        metavar="NAME",
+        help=(
+            "strategy used to determine the version bump: 'fixed' uses "
+            "--autofix-portion, 'conventional' derives the bump from "
+            "Conventional Commits messages (default: fixed)"
+        ),
+        choices=["fixed", "conventional"],
+        default="fixed",
+    )
+    parser.add_argument(
         "-p",
         "--autofix-portion",
         metavar="NAME",
-        help="wpecifies which semver portion should be autofixed (default: patch)",
+        help="specifies which semver portion should be autofixed (default: patch)",
         choices=[
             "major",
             "minor",
@@ -54,6 +78,17 @@ def parse_args():
             "build",
         ],
         default="patch",
+    )
+    parser.add_argument(
+        "--conventional-strict",
+        help=(
+            "with --autofix-strategy=conventional, fail unless at least one "
+            "Conventional Commits message qualifies for a version bump. "
+            "When not set (default), valid Conventional Commits messages "
+            "with no-bump types (chore, docs, style, refactor, revert, "
+            "test, build, ci) are accepted without changing the version."
+        ),
+        action="store_true",
     )
     parser.add_argument(
         "-d",
@@ -128,48 +163,10 @@ def process_paths(paths, version_file):
     return dirs
 
 
-def search_file(tree, path):
-    blob = None
-
-    for blob in tree.traverse():
-        if blob.path == path:
-            break
-
-        if blob.type == "tree":
-            search_file(blob, path)
-    else:
-        blob = None
-
-    return blob
-
-
-def get_file_content(repo, branch, path):
-    tree = repo.tree(branch)
-
-    blob = search_file(tree, path)
-    content = None
-
-    if blob is not None:
-        content = blob.data_stream.read().decode("ascii").strip()
-
-    return content
-
-
-def get_local_file_content(path, log):
-    try:
-        with open(path) as f:
-            return f.read().strip()
-    except Exception as e:
-        log.error("Failed to read file '%s' from the current branch: %s" % (path, e))
-
-        sys.exit(1)
-
-
-def check_version(
-    repo, current_branch, main_branch, path, autofix, autofix_portion, log
-):
-    current_version = get_local_file_content(path, log)
-    main_version = get_file_content(repo, main_branch, path)
+def check_fixed(repo, main_branch, path, autofix, autofix_portion, log):
+    current_version = get_local_file_content(path, log).strip()
+    main_content = get_file_content(repo, main_branch, path)
+    main_version = main_content.strip() if main_content is not None else None
 
     if main_version is None:
         log.info("It's a new directory")
@@ -226,6 +223,121 @@ def check_version(
         return 127
 
 
+def check_conventional(
+    repo,
+    main_branch,
+    current_branch,
+    path,
+    dir_path,
+    in_flight_message,
+    autofix,
+    conventional_strict,
+    log,
+):
+    main_content = get_file_content(repo, main_branch, path)
+
+    if main_content is None:
+        baseline = "0.0.0"
+
+        log.info("Version file does not exist on main; using 0.0.0 as baseline")
+    else:
+        baseline = main_content.strip()
+
+    if len(baseline) == 0:
+        log.error("File in the main branch has no version")
+
+        return 1
+
+    current_version = get_local_file_content(path, log).strip()
+
+    if len(current_version) == 0:
+        log.error("File in the current branch has no version")
+
+        return 1
+
+    messages = list(
+        iter_commit_messages(repo, main_branch, current_branch, dir_path=dir_path)
+    )
+
+    if in_flight_message:
+        messages.append(in_flight_message)
+
+    portion, has_valid_cc = bump_from_messages(messages)
+
+    if portion is None:
+        if conventional_strict or not has_valid_cc:
+            reason = (
+                "no Conventional Commits message qualifying for a version bump"
+                if conventional_strict
+                else "no Conventional Commits messages found at all"
+            )
+
+            log.error(
+                "%s in range %s..%s for directory '%s' (including the "
+                "in-flight message)."
+                % (reason.capitalize(), main_branch.name, current_branch.name, dir_path)
+            )
+
+            return 1
+
+        # Non-strict mode with at least one valid CC message but no bump
+        # required: accept whatever the current version is.
+        log.info(
+            "Only no-bump Conventional Commits messages found; no version "
+            "change required (current: %s)" % current_version
+        )
+
+        return
+
+    if portion == "major":
+        expected = semver.bump_major(baseline)
+    elif portion == "minor":
+        expected = semver.bump_minor(baseline)
+    elif portion == "patch":
+        expected = semver.bump_patch(baseline)
+
+    log.info(
+        "Conventional Commits bump '%s' from baseline %s -> expected at least %s"
+        % (portion, baseline, expected)
+    )
+
+    try:
+        cmp = semver.compare(current_version, expected)
+    except Exception as e:
+        log.error("Failed to compare versions: %s" % e)
+
+        return 1
+
+    if cmp == 0:
+        log.info("Version matches the expected: %s" % current_version)
+
+        return
+
+    if cmp > 0:
+        log.info(
+            "Version %s is above the expected %s; accepting manual bump"
+            % (current_version, expected)
+        )
+
+        return
+
+    log.warning(
+        "Version is %s but expected at least %s based on commit messages"
+        % (current_version, expected)
+    )
+
+    if autofix:
+        log.info("Autofixing version to %s" % expected)
+
+        try:
+            with open(path, "w") as f:
+                f.write("%s\n" % expected)
+        except Exception as e:
+            log.error("Failed to write into the version file: %s" % e)
+
+    return 127
+
+
 def main():
     # Parse args
     args = parse_args()
@@ -233,63 +345,44 @@ def main():
     # Get logger
     log = get_logger(args.debug)
 
-    # Get list of directories containing the version file
-    dirs = process_paths(args.PATH, args.version_file)
+    commit_msg_stage = is_commit_msg_invocation(args.PATH)
+
+    # Behavior matrix:
+    #   fixed strategy is only relevant at the pre-commit stage.
+    #   conventional strategy is only relevant at the commit-msg stage.
+    if args.autofix_strategy == "fixed" and commit_msg_stage:
+        return
+
+    if args.autofix_strategy == "conventional" and not commit_msg_stage:
+        return
 
     # Create Git repo object and start querying all the details
-    repo = Repo(args.PATH[0], search_parent_directories=True)
+    repo = Repo(os.getcwd(), search_parent_directories=True)
 
     # Current branch head
     current_branch = repo.head
 
-    # Main branch name
-    main_branch_name = args.branch
-    main_branch = None
+    # Resolve main branch
+    main_branch = find_main_branch(repo, args.branch, args.remote, log)
 
-    # Get reference to the main branch head
-    for i, head in enumerate(repo.heads):
-        if head.name == main_branch_name:
-            main_branch = repo.heads[i]
+    # Determine the set of version files to check based on the stage
+    if commit_msg_stage:
+        # commit-msg stage: derive candidate paths from changes since main
+        candidate_paths = changed_paths_since_main(repo, main_branch)
+        dirs = process_paths(candidate_paths, args.version_file)
 
-            break
-
-    # Check that we found the main branch
-    if main_branch is None:
-        # If the branch wasn't found, try to find it on the remote
-        remote = None
-
-        for r in repo.remotes:
-            if r.name == args.remote:
-                remote = r
-
-        if remote is not None:
-            for ref in remote.refs:
-                if ref.name == "%s/%s" % (args.remote, args.branch):
-                    try:
-                        main_branch = repo.create_head(ref.remote_head, ref)
-
-                        break
-                    except Exception as e:
-                        log.error(
-                            "Main branch '%s' not found. Failed to create head "
-                            "from remote '%s': %s" % (args.branch, args.remote, e)
-                        )
-
-                        sys.exit(1)
-            else:
-                log.error(
-                    "Main branch '%s' not found. Failed to find it "
-                    "on the remote '%s'." % (args.branch, args.remote)
-                )
-
-                sys.exit(1)
-        else:
-            log.error(
-                "Main branch '%s' not found. Couldn't find the remote '%s'."
-                % (args.branch, args.remote)
-            )
+        # Read the in-flight commit message
+        try:
+            with open(args.PATH[0]) as f:
+                in_flight_message = f.read()
+        except Exception as e:
+            log.error("Failed to read commit message file '%s': %s" % (args.PATH[0], e))
 
             sys.exit(1)
+    else:
+        # pre-commit stage: dirs come from the staged file paths
+        dirs = process_paths(args.PATH, args.version_file)
+        in_flight_message = None
 
     final_status = 0
     dirs_cnt = len(dirs)
@@ -297,18 +390,31 @@ def main():
     # Process individual directories
     for i, d in enumerate(dirs):
         path = os.path.relpath(d, start=repo.working_tree_dir)
+        dir_path = os.path.dirname(path)
 
-        log.info("Processing directory: %s" % os.path.dirname(path))
+        log.info("Processing directory: %s" % dir_path)
 
-        status = check_version(
-            repo,
-            current_branch,
-            main_branch,
-            path,
-            args.autofix,
-            args.autofix_portion,
-            log,
-        )
+        if args.autofix_strategy == "conventional":
+            status = check_conventional(
+                repo,
+                main_branch,
+                current_branch,
+                path,
+                dir_path,
+                in_flight_message,
+                args.autofix,
+                args.conventional_strict,
+                log,
+            )
+        else:
+            status = check_fixed(
+                repo,
+                main_branch,
+                path,
+                args.autofix,
+                args.autofix_portion,
+                log,
+            )
 
         if final_status == 0 and status is not None:
             final_status = status

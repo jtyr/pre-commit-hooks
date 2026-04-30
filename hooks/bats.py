@@ -112,15 +112,15 @@ def main():
 
     log.debug(f"Arguments: {args}")
 
-    if not check_bats_available():
-        log.error("bats is not available on PATH")
-        log.error("Please install bats-core: https://github.com/bats-core/bats-core")
-        return 1
-
     # If no files are provided, exit successfully.
     if not args.files:
         log.info("No files provided, nothing to check")
         return 0
+
+    if not check_bats_available():
+        log.error("bats is not available on PATH")
+        log.error("Please install bats-core: https://github.com/bats-core/bats-core")
+        return 1
 
     root = Path.cwd()
     log.debug(f"Root: {root}")

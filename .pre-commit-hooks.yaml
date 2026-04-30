@@ -9,7 +9,10 @@
   description: Check whether the Helm chart version was incremented.
   entry: check-helm-version
   language: python
-  files: ^(helper-|)charts/[^/]+/(\.kubeconform|\.helmignore|templates/NOTES.txt|.*\.(ya?ml|json|tpl))$
+  files: ^((helper-|)charts/[^/]+/(\.kubeconform|\.helmignore|templates/NOTES.txt|.*\.(ya?ml|json|tpl))|\.git/(COMMIT_EDITMSG|MERGE_MSG|SQUASH_MSG))$
+  stages:
+    - pre-commit
+    - commit-msg
   require_serial: true
 
 - id: helm-unittest
@@ -26,6 +29,9 @@
   entry: check-version
   language: python
   files: ^.*$
+  stages:
+    - pre-commit
+    - commit-msg
   require_serial: true
 
 - id: bats
