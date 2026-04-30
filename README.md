@@ -22,7 +22,7 @@ checks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: docker-image
         name: Run /tools/validate.sh in container
@@ -55,7 +55,7 @@ Supported `pre-commit` hooks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: check-helm-version
 ```
@@ -67,7 +67,7 @@ argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: check-helm-version
         args:
@@ -80,7 +80,7 @@ head from the remote. The remote name can be set via `--remote` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: check-helm-version
         args:
@@ -94,7 +94,7 @@ It's also possible to autofix the version incrementation by specifying the
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: check-helm-version
         args:
@@ -108,13 +108,81 @@ with the `--autofix-portion` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: check-helm-version
         args:
           - --autofix
           - --autofix-portion=minor
 ```
+
+The bump portion can also be derived from
+[Conventional Commits](https://www.conventionalcommits.org/) messages by
+setting `--autofix-strategy=conventional`. In this mode the hook ignores
+`--autofix-portion` and instead inspects all commit messages between the main
+branch and the current branch (filtered to commits that touched the chart
+directory) plus the in-flight commit message, then picks the highest matching
+bump:
+
+| Commit message                                                                | Bump      |
+| ----------------------------------------------------------------------------- | --------- |
+| `feat!: ...`, `fix!: ...`, any type with `!`                                  | `major`   |
+| Any message containing `BREAKING CHANGE:` or `BREAKING-CHANGE:` footer        | `major`   |
+| `feat: ...`                                                                   | `minor`   |
+| `fix: ...`, `perf: ...`                                                       | `patch`   |
+| `chore:`, `docs:`, `style:`, `refactor:`, `revert:`, `test:`, `build:`, `ci:` | _no bump_ |
+
+By default, valid Conventional Commits messages with no-bump types are
+accepted without changing the version. The hook only fails when no commit in
+the considered range carries a valid Conventional Commits message at all
+(e.g. a free-form message like `wip`).
+
+A manually bumped version that is at or above the version the Conventional
+Commits messages would derive is accepted as-is. For example, if the
+messages indicate a `minor` bump from `1.0.0` to `1.1.0` and the user has
+already bumped the chart to `2.0.0`, the manual bump is preserved. Only
+versions below the derived minimum trigger a failure (or autofix to that
+minimum, with `--autofix`).
+
+To require at least one bump-eligible message (i.e. fail on `chore:`-only
+ranges), pass `--conventional-strict`:
+
+```yaml
+- id: check-helm-version
+  args:
+    - --autofix
+    - --autofix-strategy=conventional
+    - --conventional-strict
+```
+
+There is no fallback to `--autofix-portion` in conventional mode - either a
+bump-eligible message determines the bump, or no bump happens.
+
+If the chart does not exist on the main branch, the baseline version is
+treated as `0.0.0`.
+
+The conventional strategy runs at the `commit-msg` stage so that the in-flight
+commit message participates in the decision. This requires the `commit-msg`
+git hook to be installed, which is opted into via `default_install_hook_types`
+in the `.pre-commit-config.yaml`:
+
+```yaml
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  - repo: https://github.com/jtyr/pre-commit-hooks
+    rev: v1.6.0
+    hooks:
+      - id: check-helm-version
+        args:
+          - --autofix
+          - --autofix-strategy=conventional
+```
+
+After changing `default_install_hook_types`, run `pre-commit install` once so
+that the new git hook is installed.
 
 ### `helm-unittest`
 
@@ -139,7 +207,7 @@ Basic usage with default settings (charts in `charts/` directory, tests in
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: helm-unittest
 ```
@@ -149,7 +217,7 @@ Specify a custom charts directory:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: helm-unittest
         args:
@@ -161,7 +229,7 @@ Use custom test directory and file pattern:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: helm-unittest
         args:
@@ -174,7 +242,7 @@ Stop on first test failure:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: helm-unittest
         args:
@@ -186,7 +254,7 @@ Enable debug output:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: helm-unittest
         args:
@@ -198,7 +266,7 @@ Test library charts using helper charts:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: helm-unittest
         args:
@@ -230,7 +298,7 @@ use `helper-charts/libchart/` for testing and will look for test files in
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: helm-unittest
         args:
@@ -314,7 +382,7 @@ that it changes version in a plain text file (e.g. `.version`).
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: check-version
 ```
@@ -326,7 +394,7 @@ file:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: check-version
         args:
@@ -354,7 +422,7 @@ default:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: bats
 ```
@@ -365,7 +433,7 @@ script):
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: bats
         args:
@@ -379,7 +447,7 @@ Centralised tests directory at the repo root (`{root}` expands to the cwd when
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.5.1
+    rev: v1.6.0
     hooks:
       - id: bats
         args:

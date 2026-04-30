@@ -33,9 +33,12 @@ repos:
       - id: python_unittest
         name: Python unittest
         language: python
-        entry: python -m unittest tests.docker_image
+        entry: python -m unittest discover -s tests -p '*.py'
         types:
           - python
         additional_dependencies:
           - pre-commit
+          - GitPython>=3.1.32
+          - semver>=2.13.0
+          - ruamel.yaml>=0.17.32
         pass_filenames: false
