@@ -94,7 +94,7 @@ def parse_args():
     parser.add_argument(
         "PATH",
         help="chart files or directories",
-        nargs="+",
+        nargs="*",
     )
 
     # Parse args
@@ -410,7 +410,19 @@ def main():
 
             sys.exit(1)
     else:
-        charts = process_paths(args.PATH)
+        # Union the pre-commit file list with deletions reported by git.
+        # pre-commit's default file list excludes deleted paths, so a
+        # deletion-only commit inside a chart would otherwise never reach
+        # process_paths. Adding the deleted paths here makes find_chart_dir
+        # walk up to the still-existing Chart.yaml and include the chart in
+        # the version-bump check.
+        paths = set(args.PATH)
+
+        for p in changed_paths_since_main(repo, main_branch):
+            if not os.path.exists(p):
+                paths.add(p)
+
+        charts = process_paths(paths)
         in_flight_message = None
 
     final_status = 0
