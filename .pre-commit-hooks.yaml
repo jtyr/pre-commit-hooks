@@ -9,6 +9,11 @@
   description: Check whether the Helm chart version was incremented.
   entry: check-helm-version
   language: python
+  # Always run so the hook can detect file deletions inside chart dirs.
+  # pre-commit's default file list excludes deleted paths, so deletion-only
+  # commits would otherwise skip the version-bump check entirely. The hook
+  # supplements the file list with git-level changes since main.
+  always_run: true
   files: ^((helper-|)charts/[^/]+/(\.kubeconform|\.helmignore|templates/NOTES.txt|.*\.(ya?ml|json|tpl))|\.git/(COMMIT_EDITMSG|MERGE_MSG|SQUASH_MSG))$
   stages:
     - pre-commit

@@ -22,7 +22,7 @@ checks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: docker-image
         name: Run /tools/validate.sh in container
@@ -55,7 +55,7 @@ Supported `pre-commit` hooks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: check-helm-version
 ```
@@ -67,7 +67,7 @@ argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: check-helm-version
         args:
@@ -80,7 +80,7 @@ head from the remote. The remote name can be set via `--remote` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: check-helm-version
         args:
@@ -94,7 +94,7 @@ It's also possible to autofix the version incrementation by specifying the
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: check-helm-version
         args:
@@ -108,7 +108,7 @@ with the `--autofix-portion` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: check-helm-version
         args:
@@ -173,7 +173,7 @@ default_install_hook_types:
 
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: check-helm-version
         args:
@@ -207,7 +207,7 @@ Basic usage with default settings (charts in `charts/` directory, tests in
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: helm-unittest
 ```
@@ -217,7 +217,7 @@ Specify a custom charts directory:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: helm-unittest
         args:
@@ -229,7 +229,7 @@ Use custom test directory and file pattern:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: helm-unittest
         args:
@@ -242,7 +242,7 @@ Stop on first test failure:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: helm-unittest
         args:
@@ -254,7 +254,7 @@ Enable debug output:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: helm-unittest
         args:
@@ -266,7 +266,7 @@ Test library charts using helper charts:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: helm-unittest
         args:
@@ -298,7 +298,7 @@ use `helper-charts/libchart/` for testing and will look for test files in
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: helm-unittest
         args:
@@ -382,7 +382,7 @@ that it changes version in a plain text file (e.g. `.version`).
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: check-version
 ```
@@ -394,7 +394,7 @@ file:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: check-version
         args:
@@ -422,7 +422,7 @@ default:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: bats
 ```
@@ -433,7 +433,7 @@ script):
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: bats
         args:
@@ -447,7 +447,7 @@ Centralised tests directory at the repo root (`{root}` expands to the cwd when
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.6.0
+    rev: v1.7.0
     hooks:
       - id: bats
         args:

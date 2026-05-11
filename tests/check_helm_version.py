@@ -193,6 +193,68 @@ class TestCheckFixed(unittest.TestCase):
         argv = ["check_helm_version.py", msg_path]
         self.assertEqual(_run_main(argv), 0)
 
+    def _seed_file_on_main(self):
+        """Add a chart template file on main and switch back to feature."""
+        self.fixture.checkout("main")
+        self.fixture.write("charts/foo/templates/x.yaml", "x: 1\n")
+        self.fixture.add("charts/foo/templates/x.yaml")
+        self.fixture.commit("seed deletable file on main")
+        self.fixture.checkout("feature")
+        self.fixture.repo.git.merge("main", "--no-edit")
+
+    def test_deletion_without_bump_fails(self):
+        """A deletion inside the chart without a version bump must fail.
+
+        pre-commit excludes deleted paths from the file list it passes to
+        the hook, so the hook is invoked without any PATH args. The hook
+        must still discover the deletion via git diff against main and
+        catch the missing Chart.yaml bump.
+        """
+        self._seed_file_on_main()
+
+        os.remove(os.path.join(self.fixture.dir, "charts/foo/templates/x.yaml"))
+        self.fixture.repo.index.remove(["charts/foo/templates/x.yaml"])
+
+        # No PATH args - simulating pre-commit invoking the hook with
+        # always_run=true on a deletion-only commit.
+        argv = ["check_helm_version.py", "--branch=main"]
+        self.assertEqual(_run_main(argv), 127)
+
+    def test_deletion_with_bump_passes(self):
+        """A deletion together with a version bump must pass."""
+        self._seed_file_on_main()
+
+        os.remove(os.path.join(self.fixture.dir, "charts/foo/templates/x.yaml"))
+        self.fixture.repo.index.remove(["charts/foo/templates/x.yaml"])
+        self.fixture.write(
+            "charts/foo/Chart.yaml", CHART_TEMPLATE.format(version="1.0.1")
+        )
+        self.fixture.add("charts/foo/Chart.yaml")
+
+        argv = ["check_helm_version.py", "--branch=main"]
+        self.assertEqual(_run_main(argv), 0)
+
+    def test_deletion_autofix_bumps_chart_yaml(self):
+        """`--autofix` must bump Chart.yaml on deletion-only changes too."""
+        self._seed_file_on_main()
+
+        os.remove(os.path.join(self.fixture.dir, "charts/foo/templates/x.yaml"))
+        self.fixture.repo.index.remove(["charts/foo/templates/x.yaml"])
+
+        argv = ["check_helm_version.py", "--branch=main", "--autofix"]
+        self.assertEqual(_run_main(argv), 127)
+
+        with open(os.path.join(self.fixture.dir, "charts/foo/Chart.yaml")) as f:
+            self.assertIn("version: 1.0.1", f.read())
+
+    def test_whole_chart_deletion_is_a_no_op(self):
+        """If Chart.yaml itself is deleted, the hook has nothing to check."""
+        os.remove(os.path.join(self.fixture.dir, "charts/foo/Chart.yaml"))
+        self.fixture.repo.index.remove(["charts/foo/Chart.yaml"])
+
+        argv = ["check_helm_version.py", "--branch=main"]
+        self.assertEqual(_run_main(argv), 0)
+
 
 class TestCheckConventional(unittest.TestCase):
     def setUp(self):
