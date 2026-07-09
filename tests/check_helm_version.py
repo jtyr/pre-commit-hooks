@@ -435,6 +435,62 @@ class TestCheckConventional(unittest.TestCase):
         self.assertEqual(_run_main(argv), 0)
 
 
+class TestValidationMode(unittest.TestCase):
+    """conventional + pre-commit stage runs when PRE_COMMIT_FROM_REF is set."""
+
+    def setUp(self):
+        self.fixture = GitRepoFixture()
+        self.fixture.write(
+            "charts/foo/Chart.yaml", CHART_TEMPLATE.format(version="1.0.0")
+        )
+        self.fixture.add("charts/foo/Chart.yaml")
+        self.fixture.commit("seed chart")
+        self.fixture.create_branch("feature")
+        # A feat: commit already on the branch
+        self.fixture.write("charts/foo/templates/x.yaml", "x: 1\n")
+        self.fixture.add("charts/foo/templates/x.yaml")
+        self.fixture.commit("feat: add x")
+        self.cwd = os.getcwd()
+        os.chdir(self.fixture.dir)
+        # Simulate `pre-commit run --from-ref ... --to-ref ...`
+        os.environ["PRE_COMMIT_FROM_REF"] = "main"
+        os.environ["PRE_COMMIT_TO_REF"] = "HEAD"
+
+    def tearDown(self):
+        os.environ.pop("PRE_COMMIT_FROM_REF", None)
+        os.environ.pop("PRE_COMMIT_TO_REF", None)
+        os.chdir(self.cwd)
+        self.fixture.cleanup()
+
+    def test_validation_run_autofixes_based_on_past_commits(self):
+        argv = [
+            "check_helm_version.py",
+            "--autofix",
+            "--autofix-strategy=conventional",
+            "charts/foo/templates/x.yaml",
+        ]
+        self.assertEqual(_run_main(argv), 127)
+
+        with open(os.path.join(self.fixture.dir, "charts/foo/Chart.yaml")) as f:
+            self.assertIn("version: 1.1.0", f.read())
+
+    def test_validation_run_passes_when_version_already_correct(self):
+        # Pre-bump the chart so the branch is already correct.
+        self.fixture.write(
+            "charts/foo/Chart.yaml", CHART_TEMPLATE.format(version="1.1.0")
+        )
+        self.fixture.add("charts/foo/Chart.yaml")
+        self.fixture.commit("chore: bump")
+
+        argv = [
+            "check_helm_version.py",
+            "--autofix",
+            "--autofix-strategy=conventional",
+            "charts/foo/Chart.yaml",
+        ]
+        self.assertEqual(_run_main(argv), 0)
+
+
 class TestChartIsolation(unittest.TestCase):
     """Path filtering: a commit touching chart A must not bump chart B."""
 
@@ -463,6 +519,38 @@ class TestChartIsolation(unittest.TestCase):
             f.write(message)
 
         return path
+
+    def test_inflight_feat_on_bar_does_not_leak_to_foo(self):
+        """In-flight feat: that only touches bar must not bump foo.
+
+        Without per-chart in-flight scoping, foo (which is in candidates
+        due to a chore: past commit) would erroneously pick up the feat:
+        in-flight message and get a minor bump.
+        """
+        # Past commit: chore: on foo (puts foo in changed_paths_since_main).
+        self.fixture.write("charts/foo/templates/x.yaml", "x: 1\n")
+        self.fixture.add("charts/foo/templates/x.yaml")
+        self.fixture.commit("chore: tweak foo")
+
+        # In-flight: feat: that only touches bar.
+        self.fixture.write("charts/bar/values.yaml", "k: 1\n")
+        self.fixture.add("charts/bar/values.yaml")
+        path = self._msg_path("feat: add to bar\n")
+
+        argv = [
+            "check_helm_version.py",
+            "--autofix",
+            "--autofix-strategy=conventional",
+            path,
+        ]
+        # bar gets autofixed from 2.0.0 to 2.1.0; foo stays at 1.0.0.
+        self.assertEqual(_run_main(argv), 127)
+
+        with open(os.path.join(self.fixture.dir, "charts/foo/Chart.yaml")) as f:
+            self.assertIn("version: 1.0.0", f.read())
+
+        with open(os.path.join(self.fixture.dir, "charts/bar/Chart.yaml")) as f:
+            self.assertIn("version: 2.1.0", f.read())
 
     def test_feat_on_foo_does_not_qualify_for_bar(self):
         # On feature: feat: commit only touches foo, and pre-bumps foo to 1.1.0

@@ -16,7 +16,10 @@ from hooks.common.git_helpers import (
     changed_paths_since_main,
     find_main_branch,
     is_commit_msg_invocation,
+    is_validation_invocation,
     iter_commit_messages,
+    path_under_dir,
+    staged_paths,
 )
 
 
@@ -373,14 +376,21 @@ def main():
     log = get_logger(args.debug)
 
     commit_msg_stage = is_commit_msg_invocation(args.PATH)
+    validation_mode = is_validation_invocation()
 
     # Behavior matrix:
-    #   fixed strategy is only relevant at the pre-commit stage.
-    #   conventional strategy is only relevant at the commit-msg stage.
+    #   fixed strategy: only at the pre-commit stage.
+    #   conventional strategy: at the commit-msg stage, or at the pre-commit
+    #     stage when pre-commit was invoked with --from-ref/--to-ref (or at
+    #     the pre-push stage) -- i.e. a branch-wide validation run.
     if args.autofix_strategy == "fixed" and commit_msg_stage:
         return
 
-    if args.autofix_strategy == "conventional" and not commit_msg_stage:
+    if (
+        args.autofix_strategy == "conventional"
+        and not commit_msg_stage
+        and not validation_mode
+    ):
         return
 
     # YAML reader/writer
@@ -398,6 +408,9 @@ def main():
     main_branch = find_main_branch(repo, args.branch, args.remote, log)
 
     # Determine the set of charts to check based on the stage
+    in_flight_message = None
+    in_flight_touched = set()
+
     if commit_msg_stage:
         candidate_paths = changed_paths_since_main(repo, main_branch)
         charts = process_paths(candidate_paths)
@@ -409,6 +422,8 @@ def main():
             log.error("Failed to read commit message file '%s': %s" % (args.PATH[0], e))
 
             sys.exit(1)
+
+        in_flight_touched = staged_paths(repo)
     else:
         # Union the pre-commit file list with deletions reported by git.
         # pre-commit's default file list excludes deleted paths, so a
@@ -423,7 +438,6 @@ def main():
                 paths.add(p)
 
         charts = process_paths(paths)
-        in_flight_message = None
 
     final_status = 0
     charts_cnt = len(charts)
@@ -436,6 +450,16 @@ def main():
         log.info("Processing chart: %s" % dir_path)
 
         if args.autofix_strategy == "conventional":
+            # Only attach the in-flight message to charts the in-flight
+            # commit actually touched (otherwise a feat: commit for chart A
+            # would spuriously bump chart B).
+            chart_in_flight = (
+                in_flight_message
+                if in_flight_message
+                and any(path_under_dir(p, dir_path) for p in in_flight_touched)
+                else None
+            )
+
             status = check_conventional(
                 yaml,
                 repo,
@@ -443,7 +467,7 @@ def main():
                 current_branch,
                 path,
                 dir_path,
-                in_flight_message,
+                chart_in_flight,
                 args.autofix,
                 args.conventional_strict,
                 log,
