@@ -93,3 +93,41 @@ def is_commit_msg_invocation(paths):
         return False
 
     return os.path.basename(paths[0]) in COMMIT_MSG_BASENAMES
+
+
+def is_validation_invocation():
+    """Detect a branch-wide validation invocation.
+
+    True when pre-commit was invoked with --from-ref/--to-ref (or at the
+    pre-push stage), which sets PRE_COMMIT_FROM_REF / PRE_COMMIT_TO_REF.
+    Used to allow the conventional check to also run at the pre-commit
+    stage in those cases (where no in-flight commit message exists).
+    """
+    return bool(
+        os.environ.get("PRE_COMMIT_FROM_REF") or os.environ.get("PRE_COMMIT_TO_REF")
+    )
+
+
+def staged_paths(repo):
+    """Return repo-relative paths of files staged for the in-flight commit.
+
+    Compares the index with HEAD. Used to scope an in-flight commit message
+    to only the directories the about-to-be-made commit actually touches.
+    """
+    paths = set()
+
+    for d in repo.index.diff(repo.head.commit):
+        path = d.b_path or d.a_path
+
+        if path:
+            paths.add(path)
+
+    return paths
+
+
+def path_under_dir(path, dir_path):
+    """True if `path` is `dir_path` itself or lives anywhere under it."""
+    if not dir_path:
+        return True
+
+    return path == dir_path or path.startswith(dir_path + "/")

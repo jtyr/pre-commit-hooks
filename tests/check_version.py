@@ -406,6 +406,105 @@ class TestCheckConventional(unittest.TestCase):
         self.assertEqual(_run_main(argv), 0)
 
 
+class TestDirIsolation(unittest.TestCase):
+    """Path filtering across multiple .version dirs."""
+
+    def setUp(self):
+        self.fixture = GitRepoFixture()
+        # Two version-tracked subprojects on main
+        self.fixture.write("a/.version", "1.0.0\n")
+        self.fixture.write("b/.version", "2.0.0\n")
+        self.fixture.add("a/.version", "b/.version")
+        self.fixture.commit("seed both")
+        self.fixture.create_branch("feature")
+        self.cwd = os.getcwd()
+        os.chdir(self.fixture.dir)
+
+    def tearDown(self):
+        os.chdir(self.cwd)
+        self.fixture.cleanup()
+
+    def _msg_path(self, message):
+        path = os.path.join(self.fixture.dir, ".git", "COMMIT_EDITMSG")
+        with open(path, "w") as f:
+            f.write(message)
+
+        return path
+
+    def test_inflight_feat_on_b_does_not_leak_to_a(self):
+        # Past chore: on a (puts a in candidates)
+        self.fixture.write("a/x.txt", "x\n")
+        self.fixture.add("a/x.txt")
+        self.fixture.commit("chore: tweak a")
+
+        # In-flight feat: only touches b
+        self.fixture.write("b/y.txt", "y\n")
+        self.fixture.add("b/y.txt")
+        path = self._msg_path("feat: add to b\n")
+
+        argv = [
+            "check_version.py",
+            "--autofix",
+            "--autofix-strategy=conventional",
+            path,
+        ]
+        self.assertEqual(_run_main(argv), 127)  # b autofixed
+
+        with open(os.path.join(self.fixture.dir, "a/.version")) as f:
+            self.assertEqual(f.read().strip(), "1.0.0")
+
+        with open(os.path.join(self.fixture.dir, "b/.version")) as f:
+            self.assertEqual(f.read().strip(), "2.1.0")
+
+
+class TestValidationMode(unittest.TestCase):
+    """conventional + pre-commit stage runs when PRE_COMMIT_FROM_REF is set."""
+
+    def setUp(self):
+        self.fixture = GitRepoFixture()
+        self.fixture.write(".version", "1.0.0\n")
+        self.fixture.add(".version")
+        self.fixture.commit("seed version")
+        self.fixture.create_branch("feature")
+        self.fixture.write("a.txt", "x\n")
+        self.fixture.add("a.txt")
+        self.fixture.commit("feat: add a")
+        self.cwd = os.getcwd()
+        os.chdir(self.fixture.dir)
+        os.environ["PRE_COMMIT_FROM_REF"] = "main"
+        os.environ["PRE_COMMIT_TO_REF"] = "HEAD"
+
+    def tearDown(self):
+        os.environ.pop("PRE_COMMIT_FROM_REF", None)
+        os.environ.pop("PRE_COMMIT_TO_REF", None)
+        os.chdir(self.cwd)
+        self.fixture.cleanup()
+
+    def test_validation_run_autofixes_based_on_past_commits(self):
+        argv = [
+            "check_version.py",
+            "--autofix",
+            "--autofix-strategy=conventional",
+            "a.txt",
+        ]
+        self.assertEqual(_run_main(argv), 127)
+
+        with open(os.path.join(self.fixture.dir, ".version")) as f:
+            self.assertEqual(f.read().strip(), "1.1.0")
+
+    def test_validation_run_passes_when_version_already_correct(self):
+        self.fixture.write(".version", "1.1.0\n")
+        self.fixture.add(".version")
+        self.fixture.commit("chore: bump")
+
+        argv = [
+            "check_version.py",
+            "--autofix-strategy=conventional",
+            ".version",
+        ]
+        self.assertEqual(_run_main(argv), 0)
+
+
 class TestChangedPathsSinceMain(unittest.TestCase):
     def setUp(self):
         self.fixture = GitRepoFixture()
