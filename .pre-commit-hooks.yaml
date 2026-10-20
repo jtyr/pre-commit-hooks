@@ -20,6 +20,20 @@
     - commit-msg
   require_serial: true
 
+- id: check-cargo-version
+  name: Cargo version
+  description: Check whether the Cargo crate version was incremented.
+  entry: check-cargo-version
+  language: python
+  # Always run so the hook can detect file deletions inside crate dirs.
+  # Paths are filtered by the hook itself (--include/--exclude) so the same
+  # filter applies at the pre-commit and the commit-msg stage.
+  always_run: true
+  stages:
+    - pre-commit
+    - commit-msg
+  require_serial: true
+
 - id: helm-unittest
   name: Helm unit tests
   description: Run Helm chart unit tests using helm unittest plugin.

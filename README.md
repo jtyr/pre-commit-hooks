@@ -22,7 +22,7 @@ checks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: docker-image
         name: Run /tools/validate.sh in container
@@ -46,6 +46,7 @@ Supported `pre-commit` hooks:
 
 - [`docker-image`](#docker-image)
 - [`check-helm-version`](#check-helm-version)
+- [`check-cargo-version`](#check-cargo-version)
 - [`helm-unittest`](#helm-unittest)
 - [`check-version`](#check-version)
 - [`bats`](#bats)
@@ -55,7 +56,7 @@ Supported `pre-commit` hooks:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: check-helm-version
 ```
@@ -67,7 +68,7 @@ argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: check-helm-version
         args:
@@ -80,7 +81,7 @@ head from the remote. The remote name can be set via `--remote` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: check-helm-version
         args:
@@ -94,7 +95,7 @@ It's also possible to autofix the version incrementation by specifying the
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: check-helm-version
         args:
@@ -108,7 +109,7 @@ with the `--autofix-portion` argument:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: check-helm-version
         args:
@@ -173,7 +174,7 @@ default_install_hook_types:
 
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: check-helm-version
         args:
@@ -203,6 +204,89 @@ The in-flight commit message is only attached to charts that the commit
 actually touches. A `feat:` commit modifying only chart A will not bump
 chart B even if chart B has unrelated changes earlier on the branch.
 
+### `check-cargo-version`
+
+This hook checks if the version of a Rust crate (Cargo package) was incremented
+when the crate's code changed. This helps to prevent the `cargo publish` to fail
+if the same version of the crate already exists in the registry (e.g.
+[crates.io](https://crates.io) or [Kellnr](https://github.com/kellnr/kellnr)).
+
+The hook finds the crate that owns each changed file by walking up the directory
+tree to the nearest `Cargo.toml` with a `[package]` section. Which version is
+then checked depends on the crate's `Cargo.toml`:
+
+- `version = "x.y.z"` - the version of the crate itself.
+- `version.workspace = true` - the version in the `[workspace.package]` section
+  of the workspace root `Cargo.toml`. It's shared by all crates inheriting it so
+  it's checked only once.
+- no `version` - the crate is skipped. Remove the `version` from the crate if
+  you don't want its version to be managed.
+
+The `publish` field is not taken into account.
+
+Changes of a nested crate (e.g. `crates/foo` inside of the root package) belong
+only to the nested crate. Deleting a whole crate doesn't require a version bump
+of its parent crate.
+
+By default, only changes of `*.rs` files (including `build.rs`, `tests/`,
+`benches/` and `examples/`) and `Cargo.toml` files require a version bump. This
+can be changed with the `--include` and `--exclude` arguments that take a
+regexp matched against the repo-relative path of each changed file. Use those
+arguments instead of the `files` and `exclude` options of the hook so the same
+filter is applied at both the `pre-commit` and the `commit-msg` stage:
+
+```yaml
+repos:
+  - repo: https://github.com/jtyr/pre-commit-hooks
+    rev: v1.9.0
+    hooks:
+      - id: check-cargo-version
+        args:
+          - --exclude=(^|/)(tests|benches|examples)/
+```
+
+The hook also checks that the versions of the checked crates in the
+`Cargo.lock` (if it exists) match the version in the `Cargo.toml`. With the
+`--autofix` argument, the `Cargo.lock` is updated together with the version so
+no `cargo update --workspace` is needed. Version requirements of other crates
+depending on the bumped crate are not updated.
+
+#### Usage
+
+```yaml
+repos:
+  - repo: https://github.com/jtyr/pre-commit-hooks
+    rev: v1.9.0
+    hooks:
+      - id: check-cargo-version
+        args:
+          - --autofix
+```
+
+Bump the version based on the
+[Conventional Commits](https://www.conventionalcommits.org/) messages:
+
+```yaml
+default_install_hook_types:
+  - pre-commit
+  - commit-msg
+
+repos:
+  - repo: https://github.com/jtyr/pre-commit-hooks
+    rev: v1.9.0
+    hooks:
+      - id: check-cargo-version
+        args:
+          - --autofix
+          - --autofix-strategy=conventional
+```
+
+The bumps follow the classic Conventional Commits rules, so a breaking change
+bumps the `major` portion even for `0.x.y` versions.
+
+Please refer to the `check-helm-version` above for more details about the
+usage.
+
 ### `helm-unittest`
 
 This hook runs Helm chart unit tests using the [Helm Unittest
@@ -226,7 +310,7 @@ Basic usage with default settings (charts in `charts/` directory, tests in
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: helm-unittest
 ```
@@ -236,7 +320,7 @@ Specify a custom charts directory:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: helm-unittest
         args:
@@ -248,7 +332,7 @@ Use custom test directory and file pattern:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: helm-unittest
         args:
@@ -261,7 +345,7 @@ Stop on first test failure:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: helm-unittest
         args:
@@ -273,7 +357,7 @@ Enable debug output:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: helm-unittest
         args:
@@ -285,7 +369,7 @@ Test library charts using helper charts:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: helm-unittest
         args:
@@ -317,7 +401,7 @@ use `helper-charts/libchart/` for testing and will look for test files in
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: helm-unittest
         args:
@@ -401,7 +485,7 @@ that it changes version in a plain text file (e.g. `.version`).
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: check-version
 ```
@@ -413,7 +497,7 @@ file:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: check-version
         args:
@@ -441,7 +525,7 @@ default:
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: bats
 ```
@@ -452,7 +536,7 @@ script):
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: bats
         args:
@@ -466,7 +550,7 @@ Centralised tests directory at the repo root (`{root}` expands to the cwd when
 ```yaml
 repos:
   - repo: https://github.com/jtyr/pre-commit-hooks
-    rev: v1.8.0
+    rev: v1.9.0
     hooks:
       - id: bats
         args:

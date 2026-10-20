@@ -1,6 +1,8 @@
 import os
 import sys
 
+from git import NULL_TREE
+
 
 def find_main_branch(repo, branch_name, remote_name, log):
     """Resolve the main branch head locally or by creating it from a remote ref.
@@ -47,11 +49,15 @@ def find_main_branch(repo, branch_name, remote_name, log):
     sys.exit(1)
 
 
-def iter_commit_messages(repo, main_branch, current_branch, dir_path=None):
+def iter_commit_messages(
+    repo, main_branch, current_branch, dir_path=None, path_filter=None
+):
     """Yield commit messages on current_branch but not on main_branch.
 
     If dir_path is given, only yield messages of commits whose changes touched
-    files under that directory. Paths are matched relative to the repo root.
+    files under that directory. It can also be a list of git pathspecs. Paths
+    are matched relative to the repo root. If path_filter is given, only
+    yield messages of commits changing at least one path accepted by it.
     """
     rev_range = "%s..%s" % (main_branch.commit.hexsha, current_branch.commit.hexsha)
 
@@ -61,7 +67,22 @@ def iter_commit_messages(repo, main_branch, current_branch, dir_path=None):
         kwargs["paths"] = dir_path
 
     for commit in repo.iter_commits(rev_range, **kwargs):
+        if path_filter is not None and not any(
+            path_filter(p) for p in commit_paths(commit)
+        ):
+            continue
+
         yield commit.message
+
+
+def commit_paths(commit):
+    """Return repo-relative paths changed by the commit (vs. its first parent)."""
+    if commit.parents:
+        diff = commit.parents[0].diff(commit)
+    else:
+        diff = commit.diff(NULL_TREE)
+
+    return {d.b_path or d.a_path for d in diff}
 
 
 def changed_paths_since_main(repo, main_branch):
