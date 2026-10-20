@@ -23,7 +23,7 @@ def get_file_content(repo, branch, path):
     content = None
 
     if blob is not None:
-        content = blob.data_stream.read().decode("ascii")
+        content = blob.data_stream.read().decode("utf-8")
 
     return content
 
